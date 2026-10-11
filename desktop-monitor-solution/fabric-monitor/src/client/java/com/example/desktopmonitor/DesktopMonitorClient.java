@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -19,7 +20,7 @@ public class DesktopMonitorClient implements ClientModInitializer {
         new KeyMapping(
             "key.desktopmonitor.toggle",
             InputConstants.Type.KEYBOARD,
-            0,
+            InputConstants.KEY_F8,
             CATEGORY
         )
     );
@@ -35,6 +36,8 @@ public class DesktopMonitorClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        DesktopMonitorFrame.initialize();
+        BlockEntityRenderers.register(DesktopMonitorMod.MONITOR_BLOCK_ENTITY, MonitorBlockEntityRenderer::new);
         WindowsServiceLauncher.start();
 
         UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
@@ -51,12 +54,14 @@ public class DesktopMonitorClient implements ClientModInitializer {
             while (toggleDesktop.consumeClick()) {
                 if (connection.isConnected()) {
                     connection.disconnect();
-                    if (client.player != null) {
-                        client.player.sendOverlayMessage(Component.literal("Desktop control disabled."));
-                    }
+                    client.setScreenAndShow(null);
+                    if (client.player != null) client.player.sendOverlayMessage(Component.literal("Desktop control disabled."));
                 } else {
                     MonitorConfig config = MonitorConfig.load();
                     connection.connect(config.getHost(), config.getPort(), "desktop-monitor-demo");
+                    if (connection.isConnected()) {
+                        client.setScreenAndShow(new MonitorControlScreen(connection, config.getSelectedWindow()));
+                    }
                     if (client.player != null) {
                         client.player.sendOverlayMessage(Component.literal("Desktop control enabled for window: " + config.getSelectedWindow()));
                     }

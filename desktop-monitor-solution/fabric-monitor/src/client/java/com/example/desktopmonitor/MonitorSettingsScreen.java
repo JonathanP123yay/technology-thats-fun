@@ -37,7 +37,7 @@ public class MonitorSettingsScreen extends Screen {
     @Override
     protected void init() {
         int centerX = width / 2;
-        int startY = 40;
+        int startY = 58;
 
         windowField = new EditBox(font, centerX - 120, startY, 240, 20, Component.literal("Window title"));
         windowField.setValue(config.getSelectedWindow());
@@ -74,11 +74,11 @@ public class MonitorSettingsScreen extends Screen {
         addRenderableWidget(previousPageButton);
         addRenderableWidget(nextPageButton);
 
-        hostField = new EditBox(font, centerX - 120, startY + 165, 240, 20, Component.literal("Host"));
+        hostField = new EditBox(font, centerX - 120, startY + 170, 240, 20, Component.literal("Host"));
         hostField.setValue(config.getHost());
         addRenderableWidget(hostField);
 
-        portField = new EditBox(font, centerX - 120, startY + 205, 240, 20, Component.literal("Port"));
+        portField = new EditBox(font, centerX - 120, startY + 218, 240, 20, Component.literal("Port"));
         portField.setValue(Integer.toString(config.getPort()));
         addRenderableWidget(portField);
 
@@ -94,11 +94,23 @@ public class MonitorSettingsScreen extends Screen {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
 
         int centerX = width / 2;
-        graphics.text(font, "Window title (or select below)", centerX - 120, 22, 0xFFFFFF);
-        graphics.text(font, "Host", centerX - 120, 188, 0xFFFFFF);
-        graphics.text(font, "Port", centerX - 120, 228, 0xFFFFFF);
-        graphics.text(font, discoveryStatus, centerX - 120, 270, 0xAAAAAA);
-        graphics.text(font, "Active target: " + windowField.getValue(), centerX - 120, height - 55, 0x7FFF7F);
+        graphics.text(font, "Monitor settings", centerX - 120, 14, 0xFFF2F4F8);
+        graphics.text(font, "Choose the desktop window and connection", centerX - 120, 27, 0xFFADB6C4);
+        graphics.text(font, "Window title", centerX - 120, 44, 0xFFD5DAE2);
+        graphics.text(font, "Host", centerX - 120, 214, 0xFFD5DAE2);
+        graphics.text(font, "Port", centerX - 120, 262, 0xFFD5DAE2);
+        graphics.text(font, font.plainSubstrByWidth(discoveryStatus, 240), centerX - 120, 302, 0xFFADB6C4);
+    }
+
+    @Override
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractBackground(graphics, mouseX, mouseY, delta);
+        graphics.fill(0, 0, width, height, 0x99090B10);
+        int panelLeft = (width - 320) / 2;
+        graphics.fill(panelLeft, 10, panelLeft + 320, height - 10, 0xFF161A22);
+        graphics.fill(panelLeft, 10, panelLeft + 320, 14, 0xFF63D297);
+        graphics.fill(panelLeft + 1, 15, panelLeft + 319, height - 11, 0xFF252B35);
+        graphics.fill(panelLeft + 2, 16, panelLeft + 318, height - 12, 0xFF161A22);
     }
 
     private void refreshWindowChoices() {
@@ -146,7 +158,7 @@ public class MonitorSettingsScreen extends Screen {
             button.visible = dropdownOpen && hasChoice;
             button.active = hasChoice;
             if (hasChoice) {
-                button.setMessage(Component.literal(windowChoices.get(choiceIndex)));
+                button.setMessage(Component.literal(font.plainSubstrByWidth(windowChoices.get(choiceIndex), 220)));
             }
         }
 

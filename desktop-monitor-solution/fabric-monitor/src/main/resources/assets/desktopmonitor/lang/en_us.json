@@ -1,6 +1,12 @@
 {
   "block.desktopmonitor.monitor": "Monitor",
   "item.desktopmonitor.monitor": "Monitor",
+  "block.desktopmonitor.keyboard": "Keyboard",
+  "item.desktopmonitor.keyboard": "Keyboard",
+  "block.desktopmonitor.mouse": "Mouse",
+  "item.desktopmonitor.mouse": "Mouse",
+  "itemGroup.desktopmonitor.technology": "Technology",
   "key.category.desktopmonitor": "Desktop Monitor",
-  "key.desktopmonitor.toggle": "Toggle Desktop Control"
+  "key.desktopmonitor.toggle": "Toggle Desktop Control",
+  "key.desktopmonitor.settings": "Open Desktop Monitor Settings"
 }
