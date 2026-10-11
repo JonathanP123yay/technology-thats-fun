@@ -1,19 +1,22 @@
 plugins {
-    id 'fabric-loom' version '1.18-SNAPSHOT'
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
     id 'maven-publish'
 }
 
-version = project.property('version')
-
 group = project.property('group')
+version = project.property('version')
 
 base {
     archivesName = 'desktop-monitor-mod'
 }
 
 repositories {
-    mavenCentral()
+    // Loom provides the Minecraft and Fabric repositories used by this project.
 }
+
+def windowsServiceDir = project.file('../windows-service')
+def embeddedServiceDir = layout.buildDirectory.dir('embedded-windows-service')
+def embeddedServiceExecutable = embeddedServiceDir.map { it.file('DesktopMonitorWindowsService.exe') }
 
 loom {
     splitEnvironmentSourceSets()
@@ -26,32 +29,55 @@ loom {
     }
 }
 
-dependencies {
-    minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings loom.officialMojangMappings()
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+tasks.register('publishWindowsService', Exec) {
+    workingDir windowsServiceDir
+    commandLine(
+        'dotnet',
+        'publish',
+        'DesktopMonitorWindowsService.csproj',
+        '--configuration', 'Release',
+        '--runtime', 'win-x64',
+        '--self-contained', 'true',
+        '--output', embeddedServiceDir.get().asFile.absolutePath,
+        '-p:PublishSingleFile=true',
+        '-p:IncludeNativeLibrariesForSelfExtract=true',
+        '-p:DebugType=None',
+        '-p:DebugSymbols=false'
+    )
+    inputs.files(fileTree(windowsServiceDir) {
+        include '*.csproj'
+        include '*.cs'
+    })
+    outputs.file(embeddedServiceExecutable)
 }
 
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+def modVersion = project.version
+
 processResources {
-    inputs.property 'version', project.version
+    dependsOn tasks.named('publishWindowsService')
+    inputs.property 'version', modVersion
+
+    from(embeddedServiceExecutable) {
+        into 'META-INF/desktopmonitor'
+    }
+
     filesMatching('fabric.mod.json') {
-        expand 'version': project.version
+        expand 'version': modVersion
     }
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 25
+    options.release = 25
 }
 
 java {
     withSourcesJar()
     sourceCompatibility = JavaVersion.VERSION_25
     targetCompatibility = JavaVersion.VERSION_25
-}
-
-jar {
-    from('LICENSE') {
-        rename { "${it}_${project.base.archivesName.get()}" }
-    }
 }

@@ -1,0 +1,4 @@
+/fabric-monitor/.gradle/
+/fabric-monitor/build/
+/windows-service/bin/
+/windows-service/obj/

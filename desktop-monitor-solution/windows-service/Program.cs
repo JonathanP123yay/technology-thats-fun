@@ -1,3 +1,5 @@
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Net;
@@ -15,8 +17,24 @@ public static class Program
         Console.WriteLine("Desktop Monitor Windows service starting...");
         Console.WriteLine($"Listening on loopback {IPAddress.Loopback}:{port}");
 
+        await Task.WhenAll(
+            RunTcpServiceAsync(port, authToken),
+            RunWindowDiscoveryAsync()
+        );
+    }
+
+    private static async Task RunTcpServiceAsync(int port, string authToken)
+    {
         var listener = new TcpListener(IPAddress.Loopback, port);
-        listener.Start();
+        try
+        {
+            listener.Start();
+        }
+        catch (SocketException exception)
+        {
+            Console.WriteLine($"Could not listen on {IPAddress.Loopback}:{port}: {exception.Message}");
+            return;
+        }
 
         while (true)
         {
@@ -30,6 +48,94 @@ public static class Program
                 Console.WriteLine($"Service loop error: {ex.Message}");
             }
         }
+    }
+
+    private static async Task RunWindowDiscoveryAsync()
+    {
+        const int discoveryPort = 43123;
+        using var listener = new UdpClient(new IPEndPoint(IPAddress.Loopback, discoveryPort));
+        Console.WriteLine($"Window discovery listening on loopback {IPAddress.Loopback}:{discoveryPort}");
+
+        while (true)
+        {
+            try
+            {
+                var request = await listener.ReceiveAsync();
+                if (!request.Buffer.AsSpan().SequenceEqual("desktop-monitor:list-windows"u8))
+                {
+                    continue;
+                }
+
+                var response = Encoding.UTF8.GetBytes(string.Join('\n', WindowDiscovery.GetVisibleWindowTitles()));
+                await listener.SendAsync(response, request.RemoteEndPoint);
+            }
+            catch (SocketException exception)
+            {
+                Console.WriteLine($"Window discovery socket error: {exception.Message}");
+            }
+        }
+    }
+}
+
+internal static class WindowDiscovery
+{
+    private const int GwlExStyle = -20;
+    private const long WsExToolWindow = 0x00000080L;
+    private static readonly NativeMethods.EnumWindowsCallback EnumerateCallback = EnumerateWindow;
+    private static readonly ConcurrentBag<string> Titles = new();
+
+    public static IReadOnlyList<string> GetVisibleWindowTitles()
+    {
+        while (Titles.TryTake(out _))
+        {
+        }
+
+        var serviceProcessId = new IntPtr(Environment.ProcessId);
+        NativeMethods.EnumWindows(EnumerateCallback, serviceProcessId);
+        return Titles
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(title => title, StringComparer.OrdinalIgnoreCase)
+            .Take(200)
+            .Select(title => title.Length > 240 ? title[..240] : title)
+            .ToArray();
+    }
+
+    private static bool EnumerateWindow(IntPtr handle, IntPtr serviceProcessId)
+    {
+        if (!NativeMethods.IsWindowVisible(handle))
+        {
+            return true;
+        }
+
+        var extendedStyle = NativeMethods.GetWindowLongPtr(handle, GwlExStyle).ToInt64();
+        if ((extendedStyle & WsExToolWindow) != 0)
+        {
+            return true;
+        }
+
+        NativeMethods.GetWindowThreadProcessId(handle, out var processId);
+        if (processId == serviceProcessId.ToInt32())
+        {
+            return true;
+        }
+
+        var length = NativeMethods.GetWindowTextLength(handle);
+        if (length <= 0)
+        {
+            return true;
+        }
+
+        var title = new StringBuilder(length + 1);
+        if (NativeMethods.GetWindowText(handle, title, title.Capacity) > 0)
+        {
+            var normalizedTitle = title.ToString().Replace('\r', ' ').Replace('\n', ' ').Trim();
+            if (!string.IsNullOrWhiteSpace(normalizedTitle))
+            {
+                Titles.Add(normalizedTitle);
+            }
+        }
+
+        return true;
     }
 }
 
@@ -71,7 +177,7 @@ public static class DesktopMonitorService
             {
                 var lengthBuffer = new byte[4];
                 await stream.ReadExactlyAsync(lengthBuffer.AsMemory(0, 4), cancellation);
-                var length = BitConverter.ToInt32(lengthBuffer, 0);
+                var length = BinaryPrimitives.ReadInt32BigEndian(lengthBuffer);
                 if (length <= 0 || length > 65536)
                 {
                     return;
@@ -104,7 +210,8 @@ public static class DesktopMonitorService
                 bitmap.Save(jpeg, ImageFormat.Jpeg);
                 var frame = jpeg.ToArray();
 
-                var lengthBuffer = BitConverter.GetBytes(frame.Length);
+                var lengthBuffer = new byte[sizeof(int)];
+                BinaryPrimitives.WriteInt32BigEndian(lengthBuffer, frame.Length);
                 await stream.WriteAsync(lengthBuffer, cancellation);
                 await stream.WriteAsync(frame, cancellation);
                 await stream.FlushAsync(cancellation);
@@ -222,6 +329,26 @@ public enum MouseButton
 
 internal static class NativeMethods
 {
+    public delegate bool EnumWindowsCallback(IntPtr windowHandle, IntPtr parameter);
+
+    [DllImport("user32.dll")]
+    public static extern bool EnumWindows(EnumWindowsCallback callback, IntPtr parameter);
+
+    [DllImport("user32.dll")]
+    public static extern bool IsWindowVisible(IntPtr windowHandle);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    public static extern IntPtr GetWindowLongPtr(IntPtr windowHandle, int index);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern int GetWindowText(IntPtr windowHandle, StringBuilder text, int maximumCount);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern int GetWindowTextLength(IntPtr windowHandle);
+
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr windowHandle, out uint processId);
+
     [DllImport("user32.dll")]
     public static extern void mouse_event(uint dwFlags, uint dx, uint dy, int dwData, IntPtr dwExtraInfo);
 

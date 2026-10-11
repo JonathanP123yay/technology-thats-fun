@@ -1,7 +1,19 @@
 {
   "variants": {
-    "": {
+    "facing=south": {
       "model": "desktopmonitor:block/monitor"
+    },
+    "facing=west": {
+      "model": "desktopmonitor:block/monitor",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "desktopmonitor:block/monitor",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "desktopmonitor:block/monitor",
+      "y": 270
     }
   }
 }

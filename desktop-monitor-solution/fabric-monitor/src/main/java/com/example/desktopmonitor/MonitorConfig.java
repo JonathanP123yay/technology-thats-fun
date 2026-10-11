@@ -51,7 +51,7 @@ public final class MonitorConfig {
                 properties.store(out, "Monitor settings");
             }
         } catch (IOException e) {
-            DesktopMonitorMod.LOGGER.warn("Could not persist monitor settings: {}", e.getMessage());
+            System.getLogger(DesktopMonitorMod.MOD_ID).log(System.Logger.Level.WARNING, "Could not persist monitor settings", e);
         }
     }
 

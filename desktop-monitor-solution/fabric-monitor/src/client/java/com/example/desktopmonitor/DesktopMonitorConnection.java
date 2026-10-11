@@ -1,7 +1,7 @@
 package com.example.desktopmonitor;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -27,12 +27,12 @@ public class DesktopMonitorConnection {
 
             MonitorConfig config = MonitorConfig.load();
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-            out.writeUTF(token);
-            out.writeUTF(config.getSelectedWindow());
+            out.write((token + "\n").getBytes(StandardCharsets.UTF_8));
+            out.write((config.getSelectedWindow() + "\n").getBytes(StandardCharsets.UTF_8));
             out.flush();
 
             connected.set(true);
-            DesktopMonitorMod.LOGGER.info("Connected to Windows desktop service at {}:{}", host, port);
+            System.getLogger(DesktopMonitorMod.MOD_ID).log(System.Logger.Level.INFO, "Connected to Windows desktop service at {0}:{1}", host, port);
 
             Thread reader = new Thread(() -> {
                 try (DataInputStream in = new DataInputStream(socket.getInputStream())) {
@@ -50,14 +50,15 @@ public class DesktopMonitorConnection {
                             }
                             read += count;
                         }
-                        MinecraftClient.getInstance().execute(() -> {
-                            if (MinecraftClient.getInstance().player != null) {
-                                MinecraftClient.getInstance().player.sendMessage(Text.literal("Received desktop frame: " + payload.length + " bytes"), true);
+                        Minecraft minecraft = Minecraft.getInstance();
+                        minecraft.execute(() -> {
+                            if (minecraft.player != null) {
+                                minecraft.player.sendOverlayMessage(Component.literal("Received desktop frame: " + payload.length + " bytes"));
                             }
                         });
                     }
                 } catch (IOException e) {
-                    DesktopMonitorMod.LOGGER.warn("Desktop connection interrupted: {}", e.getMessage());
+                    System.getLogger(DesktopMonitorMod.MOD_ID).log(System.Logger.Level.WARNING, "Desktop connection interrupted", e);
                 } finally {
                     disconnect();
                 }
@@ -65,7 +66,7 @@ public class DesktopMonitorConnection {
             reader.setDaemon(true);
             reader.start();
         } catch (IOException e) {
-            DesktopMonitorMod.LOGGER.warn("Could not connect to Windows service: {}", e.getMessage());
+            System.getLogger(DesktopMonitorMod.MOD_ID).log(System.Logger.Level.WARNING, "Could not connect to Windows service", e);
             disconnect();
         }
     }

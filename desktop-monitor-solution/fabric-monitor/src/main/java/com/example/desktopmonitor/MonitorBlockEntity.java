@@ -1,9 +1,10 @@
 package com.example.desktopmonitor;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 public class MonitorBlockEntity extends BlockEntity {
     private String selectedWindow = MonitorConfig.DEFAULT_WINDOW;
@@ -20,7 +21,7 @@ public class MonitorBlockEntity extends BlockEntity {
 
     public void setSelectedWindow(String selectedWindow) {
         this.selectedWindow = selectedWindow == null || selectedWindow.isBlank() ? MonitorConfig.DEFAULT_WINDOW : selectedWindow;
-        markDirty();
+        setChanged();
     }
 
     public String getHost() {
@@ -29,7 +30,7 @@ public class MonitorBlockEntity extends BlockEntity {
 
     public void setHost(String host) {
         this.host = host == null || host.isBlank() ? "127.0.0.1" : host;
-        markDirty();
+        setChanged();
     }
 
     public int getPort() {
@@ -38,22 +39,22 @@ public class MonitorBlockEntity extends BlockEntity {
 
     public void setPort(int port) {
         this.port = port <= 0 ? 43122 : port;
-        markDirty();
+        setChanged();
     }
 
     @Override
-    protected void writeNbt(NbtCompound nbt) {
-        super.writeNbt(nbt);
-        nbt.putString("selectedWindow", getSelectedWindow());
-        nbt.putString("host", getHost());
-        nbt.putInt("port", getPort());
+    protected void saveAdditional(ValueOutput output) {
+        super.saveAdditional(output);
+        output.putString("selectedWindow", getSelectedWindow());
+        output.putString("host", getHost());
+        output.putInt("port", getPort());
     }
 
     @Override
-    public void readNbt(NbtCompound nbt) {
-        super.readNbt(nbt);
-        selectedWindow = nbt.getString("selectedWindow");
-        host = nbt.getString("host");
-        port = nbt.getInt("port");
+    protected void loadAdditional(ValueInput input) {
+        super.loadAdditional(input);
+        selectedWindow = input.getStringOr("selectedWindow", MonitorConfig.DEFAULT_WINDOW);
+        host = input.getStringOr("host", "127.0.0.1");
+        port = input.getIntOr("port", 43122);
     }
 }

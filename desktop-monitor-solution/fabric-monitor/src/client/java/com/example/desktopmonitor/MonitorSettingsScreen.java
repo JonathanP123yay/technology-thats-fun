@@ -1,23 +1,36 @@
 package com.example.desktopmonitor;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MonitorSettingsScreen extends Screen {
+    private static final int WINDOW_CHOICES_PER_PAGE = 4;
     private final BlockPos monitorPos;
     private final MonitorConfig config;
-    private TextFieldWidget windowField;
-    private TextFieldWidget hostField;
-    private TextFieldWidget portField;
+    private final List<String> windowChoices = new ArrayList<>();
+    private final List<Button> windowChoiceButtons = new ArrayList<>();
+    private EditBox windowField;
+    private EditBox hostField;
+    private EditBox portField;
+    private Button dropdownButton;
+    private Button previousPageButton;
+    private Button nextPageButton;
+    private String discoveryStatus = "Loading open windows...";
+    private boolean dropdownOpen;
+    private int windowPage;
 
     public MonitorSettingsScreen(BlockPos monitorPos) {
-        super(Text.literal("Monitor Settings"));
-        this.monitorPos = monitorPos == null ? BlockPos.ORIGIN : monitorPos;
+        super(Minecraft.getInstance(), Minecraft.getInstance().font, Component.literal("Monitor Settings"));
+        this.monitorPos = monitorPos;
         this.config = MonitorConfig.load();
     }
 
@@ -26,53 +39,170 @@ public class MonitorSettingsScreen extends Screen {
         int centerX = width / 2;
         int startY = 40;
 
-        windowField = new TextFieldWidget(MinecraftClient.getInstance().textRenderer, centerX - 120, startY, 240, 20, Text.literal("Selected window"));
-        windowField.setText(config.getSelectedWindow());
-        addDrawableChild(windowField);
+        windowField = new EditBox(font, centerX - 120, startY, 240, 20, Component.literal("Window title"));
+        windowField.setValue(config.getSelectedWindow());
+        addRenderableWidget(windowField);
 
-        hostField = new TextFieldWidget(MinecraftClient.getInstance().textRenderer, centerX - 120, startY + 40, 240, 20, Text.literal("Host"));
-        hostField.setText(config.getHost());
-        addDrawableChild(hostField);
+        dropdownButton = Button.builder(Component.literal("Choose an open window"), button -> {
+            dropdownOpen = !dropdownOpen;
+            updateWindowChoiceWidgets();
+        }).bounds(centerX - 120, startY + 25, 180, 20).build();
+        addRenderableWidget(dropdownButton);
 
-        portField = new TextFieldWidget(MinecraftClient.getInstance().textRenderer, centerX - 120, startY + 80, 240, 20, Text.literal("Port"));
-        portField.setText(Integer.toString(config.getPort()));
-        addDrawableChild(portField);
+        addRenderableWidget(Button.builder(Component.literal("Refresh"), button -> refreshWindowChoices())
+            .bounds(centerX + 65, startY + 25, 55, 20)
+            .build());
 
-        addDrawableChild(ButtonWidget.builder(Text.literal("Apply"), button -> applySettings()).dimensions(centerX - 120, height - 40, 110, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Close"), button -> close()).dimensions(centerX + 10, height - 40, 110, 20).build());
+        for (int index = 0; index < WINDOW_CHOICES_PER_PAGE; index++) {
+            int choiceIndex = index;
+            Button choiceButton = Button.builder(Component.empty(), button -> selectWindowChoice(choiceIndex))
+                .bounds(centerX - 120, startY + 50 + index * 20, 240, 20)
+                .build();
+            choiceButton.visible = false;
+            addRenderableWidget(choiceButton);
+            windowChoiceButtons.add(choiceButton);
+        }
+
+        previousPageButton = Button.builder(Component.literal("<"), button -> changeWindowPage(-1))
+            .bounds(centerX - 120, startY + 132, 40, 20)
+            .build();
+        nextPageButton = Button.builder(Component.literal(">"), button -> changeWindowPage(1))
+            .bounds(centerX + 80, startY + 132, 40, 20)
+            .build();
+        previousPageButton.visible = false;
+        nextPageButton.visible = false;
+        addRenderableWidget(previousPageButton);
+        addRenderableWidget(nextPageButton);
+
+        hostField = new EditBox(font, centerX - 120, startY + 165, 240, 20, Component.literal("Host"));
+        hostField.setValue(config.getHost());
+        addRenderableWidget(hostField);
+
+        portField = new EditBox(font, centerX - 120, startY + 205, 240, 20, Component.literal("Port"));
+        portField.setValue(Integer.toString(config.getPort()));
+        addRenderableWidget(portField);
+
+        addRenderableWidget(Button.builder(Component.literal("Apply"), button -> applySettings()).bounds(centerX - 120, height - 30, 110, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Close"), button -> onClose()).bounds(centerX + 10, height - 30, 110, 20).build());
+
+        updateWindowChoiceWidgets();
+        refreshWindowChoices();
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        renderBackground(context, mouseX, mouseY, delta);
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
 
         int centerX = width / 2;
-        context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal("Selected window"), centerX - 120, 22, 0xFFFFFF);
-        context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal("Host"), centerX - 120, 62, 0xFFFFFF);
-        context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal("Port"), centerX - 120, 102, 0xFFFFFF);
-        context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal("Active target: " + config.getSelectedWindow()), centerX - 120, height - 80, 0x7FFF7F);
+        graphics.text(font, "Window title (or select below)", centerX - 120, 22, 0xFFFFFF);
+        graphics.text(font, "Host", centerX - 120, 188, 0xFFFFFF);
+        graphics.text(font, "Port", centerX - 120, 228, 0xFFFFFF);
+        graphics.text(font, discoveryStatus, centerX - 120, 270, 0xAAAAAA);
+        graphics.text(font, "Active target: " + windowField.getValue(), centerX - 120, height - 55, 0x7FFF7F);
+    }
+
+    private void refreshWindowChoices() {
+        discoveryStatus = "Looking for open windows...";
+        updateWindowChoiceWidgets();
+
+        WindowsWindowDiscovery.loadWindows(this::setWindowChoices, this::setDiscoveryFailure);
+    }
+
+    private void setWindowChoices(List<String> choices) {
+        Minecraft.getInstance().execute(() -> {
+            windowChoices.clear();
+            windowChoices.addAll(choices);
+            windowPage = 0;
+            discoveryStatus = choices.isEmpty()
+                ? "No visible windows found; enter a title above."
+                : choices.size() + " open window(s) found.";
+            updateWindowChoiceWidgets();
+        });
+    }
+
+    private void setDiscoveryFailure(IOException exception) {
+        Minecraft.getInstance().execute(() -> {
+            discoveryStatus = "Window list unavailable; start or refresh the service.";
+            System.getLogger(DesktopMonitorMod.MOD_ID).log(
+                System.Logger.Level.WARNING,
+                "Could not retrieve open windows from the companion service",
+                exception
+            );
+            updateWindowChoiceWidgets();
+        });
+    }
+
+    private void updateWindowChoiceWidgets() {
+        if (dropdownButton == null) {
+            return;
+        }
+
+        dropdownButton.setMessage(Component.literal(dropdownOpen ? "Hide open windows" : "Choose an open window"));
+        int firstChoice = windowPage * WINDOW_CHOICES_PER_PAGE;
+        for (int index = 0; index < windowChoiceButtons.size(); index++) {
+            int choiceIndex = firstChoice + index;
+            Button button = windowChoiceButtons.get(index);
+            boolean hasChoice = choiceIndex < windowChoices.size();
+            button.visible = dropdownOpen && hasChoice;
+            button.active = hasChoice;
+            if (hasChoice) {
+                button.setMessage(Component.literal(windowChoices.get(choiceIndex)));
+            }
+        }
+
+        int pageCount = (windowChoices.size() + WINDOW_CHOICES_PER_PAGE - 1) / WINDOW_CHOICES_PER_PAGE;
+        previousPageButton.visible = dropdownOpen && pageCount > 1;
+        nextPageButton.visible = dropdownOpen && pageCount > 1;
+        previousPageButton.active = windowPage > 0;
+        nextPageButton.active = windowPage + 1 < pageCount;
+    }
+
+    private void selectWindowChoice(int indexOnPage) {
+        int choiceIndex = windowPage * WINDOW_CHOICES_PER_PAGE + indexOnPage;
+        if (choiceIndex >= 0 && choiceIndex < windowChoices.size()) {
+            windowField.setValue(windowChoices.get(choiceIndex));
+            dropdownOpen = false;
+            updateWindowChoiceWidgets();
+        }
+    }
+
+    private void changeWindowPage(int direction) {
+        int pageCount = (windowChoices.size() + WINDOW_CHOICES_PER_PAGE - 1) / WINDOW_CHOICES_PER_PAGE;
+        windowPage = Math.max(0, Math.min(pageCount - 1, windowPage + direction));
+        updateWindowChoiceWidgets();
     }
 
     private void applySettings() {
-        config.setSelectedWindow(windowField.getText());
-        config.setHost(hostField.getText());
+        config.setSelectedWindow(windowField.getValue());
+        config.setHost(hostField.getValue());
         try {
-            config.setPort(Integer.parseInt(portField.getText()));
-        } catch (NumberFormatException ignored) {
-            config.setPort(43122);
+            int port = Integer.parseInt(portField.getValue());
+            if (port < 1 || port > 65535) {
+                throw new NumberFormatException("Port outside valid range");
+            }
+            config.setPort(port);
+        } catch (NumberFormatException exception) {
+            portField.setFocused(true);
+            return;
         }
         config.save();
 
-        if (MinecraftClient.getInstance().world != null && MinecraftClient.getInstance().world.getBlockEntity(monitorPos) instanceof MonitorBlockEntity blockEntity) {
+        if (monitorPos != null
+            && Minecraft.getInstance().level != null
+            && Minecraft.getInstance().level.getBlockEntity(monitorPos) instanceof MonitorBlockEntity blockEntity) {
             blockEntity.setSelectedWindow(config.getSelectedWindow());
             blockEntity.setHost(config.getHost());
             blockEntity.setPort(config.getPort());
         }
 
-        if (MinecraftClient.getInstance().player != null) {
-            MinecraftClient.getInstance().player.sendMessage(Text.literal("Monitor target set to: " + config.getSelectedWindow()), false);
+        if (Minecraft.getInstance().player != null) {
+            Minecraft.getInstance().player.sendSystemMessage(Component.literal("Monitor target set to: " + config.getSelectedWindow()));
         }
-        close();
+        onClose();
+    }
+
+    @Override
+    public void onClose() {
+        Minecraft.getInstance().setScreenAndShow(null);
     }
 }

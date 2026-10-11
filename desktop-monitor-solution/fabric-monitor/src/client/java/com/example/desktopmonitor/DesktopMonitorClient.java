@@ -2,53 +2,69 @@ package com.example.desktopmonitor;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.text.Text;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.world.InteractionResult;
 
 public class DesktopMonitorClient implements ClientModInitializer {
     private final DesktopMonitorConnection connection = new DesktopMonitorConnection();
+    private static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(DesktopMonitorMod.MOD_ID, "desktop_monitor"));
 
-    private final KeyBinding toggleDesktop = KeyBindingHelper.registerKeyBinding(
-        new KeyBinding(
+    private final KeyMapping toggleDesktop = KeyMappingHelper.registerKeyMapping(
+        new KeyMapping(
             "key.desktopmonitor.toggle",
-            InputUtil.Type.KEYSYM,
-            InputUtil.UNKNOWN_KEY.getCode(),
-            "key.category.desktopmonitor"
+            InputConstants.Type.KEYBOARD,
+            0,
+            CATEGORY
         )
     );
 
-    private final KeyBinding openSettings = KeyBindingHelper.registerKeyBinding(
-        new KeyBinding(
+    private final KeyMapping openSettings = KeyMappingHelper.registerKeyMapping(
+        new KeyMapping(
             "key.desktopmonitor.settings",
-            InputUtil.Type.KEYSYM,
-            InputUtil.UNKNOWN_KEY.getCode(),
-            "key.category.desktopmonitor"
+            InputConstants.Type.KEYBOARD,
+            79,
+            CATEGORY
         )
     );
 
     @Override
     public void onInitializeClient() {
+        WindowsServiceLauncher.start();
+
+        UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
+            if (world.isClientSide()
+                && !player.isShiftKeyDown()
+                && world.getBlockState(hit.getBlockPos()).is(DesktopMonitorMod.MONITOR_BLOCK)) {
+                Minecraft.getInstance().setScreenAndShow(new MonitorSettingsScreen(hit.getBlockPos()));
+                return InteractionResult.SUCCESS;
+            }
+            return InteractionResult.PASS;
+        });
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (toggleDesktop.wasPressed()) {
+            while (toggleDesktop.consumeClick()) {
                 if (connection.isConnected()) {
                     connection.disconnect();
                     if (client.player != null) {
-                        client.player.sendMessage(Text.literal("Desktop control disabled."), true);
+                        client.player.sendOverlayMessage(Component.literal("Desktop control disabled."));
                     }
                 } else {
                     MonitorConfig config = MonitorConfig.load();
                     connection.connect(config.getHost(), config.getPort(), "desktop-monitor-demo");
                     if (client.player != null) {
-                        client.player.sendMessage(Text.literal("Desktop control enabled for window: " + config.getSelectedWindow()), true);
+                        client.player.sendOverlayMessage(Component.literal("Desktop control enabled for window: " + config.getSelectedWindow()));
                     }
                 }
             }
 
-            while (openSettings.wasPressed()) {
-                client.setScreen(new MonitorSettingsScreen(null));
+            while (openSettings.consumeClick()) {
+                client.setScreenAndShow(new MonitorSettingsScreen(null));
             }
         });
     }

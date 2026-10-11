@@ -4,9 +4,10 @@
   "version": "${version}",
   "name": "Desktop Monitor",
   "description": "A local desktop monitor block for a Windows-in-Minecraft streaming setup.",
-  "authors": ["Copilot"],
+  "authors": ["Jonathan Prattipati (jonny_and_matty1)"],
   "contact": {
-    "sources": "https://example.invalid/source"
+    "sources": "https://github.com/jonathanp123yay/windows",
+    "issues": "https://github.com/JonathanP123yay/windows/issues"
   },
   "license": "MIT",
   "environment": "*",
@@ -20,7 +21,7 @@
   },
   "depends": {
     "fabricloader": ">=0.19.5",
-    "minecraft": "~26.4",
+    "minecraft": "~26.3",
     "java": ">=25",
     "fabric-api": "*"
   }
