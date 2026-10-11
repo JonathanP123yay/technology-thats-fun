@@ -20,6 +20,15 @@ public class DesktopMonitorClient implements ClientModInitializer {
         )
     );
 
+    private final KeyBinding openSettings = KeyBindingHelper.registerKeyBinding(
+        new KeyBinding(
+            "key.desktopmonitor.settings",
+            InputUtil.Type.KEYSYM,
+            InputUtil.UNKNOWN_KEY.getCode(),
+            "key.category.desktopmonitor"
+        )
+    );
+
     @Override
     public void onInitializeClient() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -30,11 +39,16 @@ public class DesktopMonitorClient implements ClientModInitializer {
                         client.player.sendMessage(Text.literal("Desktop control disabled."), true);
                     }
                 } else {
-                    connection.connect("127.0.0.1", 43122, "desktop-monitor-demo");
+                    MonitorConfig config = MonitorConfig.load();
+                    connection.connect(config.getHost(), config.getPort(), "desktop-monitor-demo");
                     if (client.player != null) {
-                        client.player.sendMessage(Text.literal("Desktop control enabled."), true);
+                        client.player.sendMessage(Text.literal("Desktop control enabled for window: " + config.getSelectedWindow()), true);
                     }
                 }
+            }
+
+            while (openSettings.wasPressed()) {
+                client.setScreen(new MonitorSettingsScreen(null));
             }
         });
     }

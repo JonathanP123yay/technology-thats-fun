@@ -39,13 +39,19 @@ public static class DesktopMonitorService
     {
         using var stream = client.GetStream();
         var auth = await ReadLineAsync(stream, CancellationToken.None);
+        var selectedWindow = await ReadLineAsync(stream, CancellationToken.None);
         if (!string.Equals(auth, authToken, StringComparison.Ordinal))
         {
             Console.WriteLine("Rejected unauthenticated client.");
             return;
         }
 
-        Console.WriteLine("Client authenticated. Streaming desktop frames.");
+        if (string.IsNullOrWhiteSpace(selectedWindow))
+        {
+            selectedWindow = "Notepad";
+        }
+
+        Console.WriteLine($"Client authenticated. Streaming desktop frames for window: {selectedWindow}");
 
         using var frameCancellation = new CancellationTokenSource();
 

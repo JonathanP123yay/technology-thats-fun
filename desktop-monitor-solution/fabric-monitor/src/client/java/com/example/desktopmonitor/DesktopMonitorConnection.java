@@ -1,6 +1,7 @@
 package com.example.desktopmonitor;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.text.Text;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -24,8 +25,10 @@ public class DesktopMonitorConnection {
             socket = new Socket(host, port);
             socket.setTcpNoDelay(true);
 
+            MonitorConfig config = MonitorConfig.load();
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
             out.writeUTF(token);
+            out.writeUTF(config.getSelectedWindow());
             out.flush();
 
             connected.set(true);
