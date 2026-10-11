@@ -1,0 +1,15 @@
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\obj\Debug\net10.0-windows\DesktopMonitorWindowsService.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\obj\Debug\net10.0-windows\DesktopMonitorWindowsService.AssemblyInfoInputs.cache
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\obj\Debug\net10.0-windows\DesktopMonitorWindowsService.AssemblyInfo.cs
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\obj\Debug\net10.0-windows\DesktopMonitorWindowsService.csproj.CoreCompileInputs.cache
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\obj\Debug\net10.0-windows\DesktopMonitorWindowsService.sourcelink.json
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\bin\Debug\net10.0-windows\DesktopMonitorWindowsService.exe
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\bin\Debug\net10.0-windows\DesktopMonitorWindowsService.deps.json
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\bin\Debug\net10.0-windows\DesktopMonitorWindowsService.runtimeconfig.json
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\bin\Debug\net10.0-windows\DesktopMonitorWindowsService.dll
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\bin\Debug\net10.0-windows\DesktopMonitorWindowsService.pdb
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\obj\Debug\net10.0-windows\DesktopMonitorWindowsService.dll
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\obj\Debug\net10.0-windows\refint\DesktopMonitorWindowsService.dll
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\obj\Debug\net10.0-windows\DesktopMonitorWindowsService.pdb
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\obj\Debug\net10.0-windows\DesktopMonitorWindowsService.genruntimeconfig.cache
+C:\Users\Jonathan.DESKTOP-AJLNVG0\Desktop\stuff\mc-computer\desktop-monitor-solution\windows-service\obj\Debug\net10.0-windows\ref\DesktopMonitorWindowsService.dll

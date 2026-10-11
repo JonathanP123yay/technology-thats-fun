@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "desktopmonitor",
+  "version": "${version}",
+  "name": "Desktop Monitor",
+  "description": "A local desktop monitor block for a Windows-in-Minecraft streaming setup.",
+  "authors": ["Copilot"],
+  "contact": {
+    "sources": "https://example.invalid/source"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.example.desktopmonitor.DesktopMonitorMod"
+    ],
+    "client": [
+      "com.example.desktopmonitor.DesktopMonitorClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
