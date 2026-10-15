@@ -1,6 +1,4 @@
-# Desktop Monitor for Minecraft 26.3
-
-This project was created outside the stock Fabric example mod so the example template remains untouched.
+# Technology that's fun 
 
 Minecraft 26.3 is the target. Fabric publishes Loom 1.18-SNAPSHOT, loader 0.19.5, and Fabric API 0.162.0+26.3 for this release. Minecraft 26.1 and newer are unobfuscated; the Fabric 26.1 porting guide says to remove the mappings dependency, use the new Loom plugin ID, and package with the standard `jar` task. Minecraft's version metadata specifies Java 25.
 
